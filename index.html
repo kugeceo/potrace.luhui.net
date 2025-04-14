@@ -9,7 +9,8 @@
 <meta name="description" content="图片二值化转黑白SVG矢量图在线工具，Potrace支持：jpg转svg、png转svg、gif转svg、bmp转svg、ico转svg、webp转svg 单色图像" />
 
 
-<!--<script type="text/javascript" src="/common/jquery/jquery-1.8.3.min.js"></script>-->
+<!---->
+<script type="text/javascript" src="http://ai.p12345.com/common/jquery/jquery-1.8.3.min.js"></script>
 
 
 <style type="text/css">
@@ -150,7 +151,7 @@ window.onload =	function() {
 
 	var path=strGetUrlArg(window.location.search,'file','')
 	if(path){
-		path=path.replace(/^.*?potrace.luhui.net\/datafile/,'/datafile/shufaji')
+		path=path.replace(/^.*?#shufaji.com\/datafile/,'/datafile/shufaji,'/potrace.luhui.net')
 		Potrace.loadImageFromUrl(path);
 		Potrace.process(function() {
 			displayImg();
