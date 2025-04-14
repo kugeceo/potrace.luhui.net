@@ -150,7 +150,7 @@ window.onload =	function() {
 
 	var path=strGetUrlArg(window.location.search,'file','')
 	if(path){
-		path=path.replace(/^.*?luhui.net\/datafile/,'/datafile/shufaji')
+		path=path.replace(/^.*?potrace.luhui.net\/datafile/,'/datafile/shufaji')
 		Potrace.loadImageFromUrl(path);
 		Potrace.process(function() {
 			displayImg();
