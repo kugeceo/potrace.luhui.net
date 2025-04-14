@@ -1,5 +1,4 @@
-/* Copyright (C) 2001-2013 Peter Selinger.
- *
+/* 
  * A javascript port of Potrace (http://potrace.sourceforge.net).
  * 
  * Licensed under the GPL
@@ -27,7 +26,7 @@
  *   process(callback) : wait for the image be loaded, then run potrace algorithm,
  *                       then call callback function.
  * 
- *   getSVG(size, opt_type) : return a string of generated SVG image.
+ *   getSVG: getSVG(size, opt_type) : return a string of generated SVG image.
  *                                    result_image_size = original_image_size * size
  *                                    optional parameter opt_type can be "curve"
  */
@@ -160,6 +159,11 @@ var Potrace = (function() {
   
   function loadBm() {
     var ctx = imgCanvas.getContext('2d');
+
+    var img = ctx.getImageData(0, 0, imgCanvas.width, imgCanvas.height);
+    var data = get_adjust_data(img);
+    ctx.putImageData(data, 0, 0);
+
     bm = new Bitmap(imgCanvas.width, imgCanvas.height);
     var imgdataobj = ctx.getImageData(0, 0, bm.w, bm.h);
     var l = imgdataobj.data.length, i, j, color;
@@ -170,7 +174,93 @@ var Potrace = (function() {
     }
     info.isReady = true;
   }
+
+  function get_adjust_data(data) {
+    //settings
+    var white = 240; //white color min
+    var black = 30; //black color max
+    var target_white = 1; //how much % white colors should take
+    var target_black = 0.5; //how much % black colors should take
+    var modify = 1.1; //color modify strength
+    var cycles_count = 10; //how much iteration to change colors
+    var imgData = data.data;
+    var W = data.width;
+    var H = data.height;
   
+    var n = 0; //pixels count without transparent
+    //make sure we have white
+    var n_valid = 0;
+    for (var i = 0; i < imgData.length; i += 4) {
+      if (imgData[i + 3] == 0) continue; //transparent
+      if ((imgData[i] + imgData[i + 1] + imgData[i + 2]) / 3 > white) n_valid++;
+      n++;
+    }
+    var target = target_white;
+    var n_fix_white = 0;
+    var done = false;
+    for (var j = 0; j < cycles_count; j++) {
+      if (n_valid * 100 / n >= target) done = true;
+      if (done == true) break;
+      n_fix_white++;
+  
+      //adjust
+      for (var i = 0; i < imgData.length; i += 4) {
+        if (imgData[i + 3] == 0) continue; //transparent
+        for (var c = 0; c < 3; c++) {
+          var x = i + c;
+          if (imgData[x] < 10) continue;
+          //increase white
+          imgData[x] *= modify;
+          imgData[x] = Math.round(imgData[x]);
+          if (imgData[x] > 255) imgData[x] = 255;
+        }
+      }
+  
+      //recheck
+      n_valid = 0;
+      for (var i = 0; i < imgData.length; i += 4) {
+        if (imgData[i + 3] == 0) continue; //transparent
+        if ((imgData[i] + imgData[i + 1] + imgData[i + 2]) / 3 > white) n_valid++;
+      }
+    }
+  
+    //make sure we have black
+    n_valid = 0;
+    for (var i = 0; i < imgData.length; i += 4) {
+      if (imgData[i + 3] == 0) continue; //transparent
+      if ((imgData[i] + imgData[i + 1] + imgData[i + 2]) / 3 < black) n_valid++;
+    }
+    target = target_black;
+    var n_fix_black = 0;
+    var done = false;
+    for (var j = 0; j < cycles_count; j++) {
+      if (n_valid * 100 / n >= target) done = true;
+      if (done == true) break;
+      n_fix_black++;
+  
+      //adjust
+      for (var i = 0; i < imgData.length; i += 4) {
+        if (imgData[i + 3] == 0) continue; //transparent
+        for (var c = 0; c < 3; c++) {
+          var x = i + c;
+          if (imgData[x] > 240) continue;
+          //increase black
+          imgData[x] -= (255 - imgData[x]) * modify - (255 - imgData[x]);
+          imgData[x] = Math.round(imgData[x]);
+        }
+      }
+  
+      //recheck
+      n_valid = 0;
+      for (var i = 0; i < imgData.length; i += 4) {
+        if (imgData[i + 3] == 0) continue; //transparent
+        if ((imgData[i] + imgData[i + 1] + imgData[i + 2]) / 3 < black) n_valid++;
+      }
+    }
+    //log('Iterations: brighten='+n_fix_white+", darken="+n_fix_black);
+    return data;
+  }
+
   
   function bmToPathlist() {
   

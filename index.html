@@ -1,0 +1,250 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset=utf-8>
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+<meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+<title>luhui Potrace－图片二值化转黑白 SVG 矢量图，支持 JPG, PNG, GIF, BMP, WEBP 转单色图像</title>
+<meta name="description" content="图片二值化转黑白SVG矢量图在线工具，Potrace支持：jpg转svg、png转svg、gif转svg、bmp转svg、ico转svg、webp转svg 单色图像" />
+
+
+<!--<script type="text/javascript" src="/common/jquery/jquery-1.8.3.min.js"></script>-->
+
+
+<style type="text/css">
+
+body{font:100%/1.8 'Microsoft YaHei'; margin:25px; background:#eee;}
+h1{font:bold 2.5em/1.5 'Microsoft YaHei';}
+
+a:link,a:visited{color:#6d6e73;}
+a:hover,a:focus,a:active{color:#444;}
+a.tit{color:#000; text-decoration:none;}
+
+#imgdiv,
+#svgdiv{display:none; line-height:1; margin:10px 20px 10px 0; padding:10px; border:2px solid #ccc; border-radius:5px; float:left;}
+#imgdiv div,
+#svgdiv div{font-size:.9em;line-height:1;padding-bottom:.5em;}
+
+#drop{width:12.5em; padding:15px; text-align:center; border:2px dashed #ccc; border-radius:5px; float:left;}
+#drop.hovering{border:2px dashed #333;}
+#case{padding:15px 20px; float:left;}
+
+#save{border:1px solid #555; border-radius:5px; padding:2px 8px; text-decoration:none; background:#ddd;}
+#save:hover{background:#eee;}
+#imageInput{display:none;}
+
+</style>
+</head>
+<body>
+
+	<header><a href="./" class='tit'><h1>Potrace</h1></a></header>
+	<article>
+
+		<div>图片转单色 SVG 矢量图<br>可打开 jpg、png、gif、bmp、ico、webp 等格式<br></div>
+
+		<input type="file" id="imageInput" accept="image/*">
+		<div style="margin:1em 0; overflow:hidden;">
+			<div id="drop">
+				<a href="javascript:void(0)" id="imageSelect">打开图像</a> <br>或 Ctrl+V 粘贴图片 <br>或 将图像拖放到本页
+			</div>
+			<div id="case"></div>
+		</div>
+
+		<div>
+			填色 <input type="color" id="svgcolor"> &nbsp;
+			放大 <select id="svgzoom">
+					<option value="1">1</option>
+					<option value="2">2</option>
+					<option value="3">3</option>
+					<option value="4">4</option>
+					<option value="5">5</option>
+					<option value="6">6</option>
+					<option value="7">7</option>
+					<option value="8">8</option>
+				</select>　<a href="javascript:void(0)" id="save" class="btn">下载</a>　<a href="./">清空</a>　<a href="javascript:void(0)" id="run">例图</a>
+		</div>
+
+		<div style="padding:1.5em 0; overflow:hidden;">
+			<div id="imgdiv"></div>
+			<div id="svgdiv"></div>
+		</div>
+
+		<div style="padding-top:3em;">
+			<a href="http://ai.luhui.net" target="_blank">Ai矢量</a> &nbsp;
+			<a href="http://soft.luhui.net" target="_blank">鲁虺软件</a> &nbsp;
+			<!-- <a href="http://potrace.sourceforge.net" target="_blank">Potrace</a> &nbsp; -->
+			<a href="https://github.com/kugeceo/potrace.luhui.net" target="_blank">Github</a> &nbsp;
+			<a href="http://www.luhui.net" target="_blank">鲁虺文化网</a>
+		</div>
+
+	</article>
+
+<script src="potrace.js"></script>
+<script>
+
+window.onload =	function() {
+	var	imageSelect	= $('#imageSelect')[0],
+		imageInput = $('#imageInput')[0];
+	imageSelect.addEventListener("click", function(e) {
+		imageInput.click();
+		e.preventDefault();
+	}, false);
+
+	imageInput.addEventListener("change", function(e) {
+		handleFiles(this.files);
+	}, false);
+
+	$('#run')[0].addEventListener("click", function(e) {
+		Potrace.loadImageFromUrl("yao.jpg");
+		Potrace.process(function() {
+			displayImg();
+			displaySVG($('#svgzoom').val());
+		});
+	}, false);
+
+	$('#save')[0].addEventListener("click", function(e) {
+		if($('#svgimg').length){
+			e.target.download =	"Potrace_" +	getFormatDate() +	".svg";
+			e.target.href =	$('#svgimg').attr('src')
+		}
+	}, false);
+
+	var	drop = $('#drop')[0];
+	drop.addEventListener("dragenter", function(e) {
+		if (e.preventDefault) e.preventDefault();
+		e.dataTransfer.dropEffect =	'copy';
+		this.classList.add('hovering');
+		return false;
+	}, false);
+
+	drop.addEventListener("dragleave", function(e) {
+		if (e.preventDefault) e.preventDefault();
+		e.dataTransfer.dropEffect =	'copy';
+		this.classList.remove('hovering');
+		return false;
+	}, false);
+
+	drop.addEventListener("dragover", function(e) {
+		if (e.preventDefault) e.preventDefault();
+		e.dataTransfer.dropEffect =	'copy';
+		this.classList.add('hovering');
+		return false;
+	}, false);
+
+	drop.addEventListener("drop", function(e) {
+		if (e.preventDefault) e.preventDefault();
+		this.classList.remove('hovering');
+		handleFiles(e.dataTransfer.files);
+		return false;
+	}, false);
+
+	$('#svgzoom').change(function(){
+		if($('#svgdiv > img').length){
+			displaySVG(this.value)
+		}
+	})
+	$('#svgcolor').on('input', function(){
+		$('#svgzoom').change()
+	})
+
+	var path=strGetUrlArg(window.location.search,'file','')
+	if(path){
+		path=path.replace(/^.*?luhui.net\/datafile/,'/datafile/shufaji')
+		Potrace.loadImageFromUrl(path);
+		Potrace.process(function() {
+			displayImg();
+			displaySVG($('#svgzoom').val());
+		});
+	}
+};
+
+function handleFiles(files)	{
+	Potrace.loadImageFromFile(files[0]);
+	Potrace.process(function() {
+		displayImg();
+		displaySVG($('#svgzoom').val());
+	});
+}
+
+function displayImg() {
+	var	imgdiv = $('#imgdiv')[0];
+	imgdiv.style.display = 'inline-block';
+	imgdiv.innerHTML = "<div>源图</div>";
+	imgdiv.appendChild(Potrace.img);
+}
+
+function displaySVG(size, type)	{
+	var	svgdiv = $('#svgdiv')[0];
+	svgdiv.style.display = 'inline-block';
+	var color=$('#svgcolor').val()
+	var svgStr=Potrace.getSVG(size, type).replace(' fill="black" ',' fill="'+color+'" ')
+	var data = 'data:image/svg+xml;base64,'+window.btoa(svgStr)
+	svgdiv.innerHTML = "<div>效果</div>"	+ '<img id=svgimg src="'+data+'">';
+}
+
+function getFormatDate(){
+	var e=new Date,t=e.getMonth()+1,g=e.getDate(),n=e.getHours(),a=e.getMinutes(),r=e.getSeconds();return t>=1&&t<=9&&(t="0"+t),g>=0&&g<=9&&(g="0"+g),n>=0&&n<=9&&(n="0"+n),a>=0&&a<=9&&(a="0"+a),r>=0&&r<=9&&(r="0"+r),
+	//yyyy-mm-dd_MMmmss
+	e.getFullYear()+"-"+t+"-"+g+"_"+n+a+r
+}
+
+//strGetUrlArg("?id=8","id",6)
+function strGetUrlArg(s,sv,sd){
+	var a=s.match(new RegExp("(^|&|\\?)"+sv+"=[^&]*"))
+	return decodeURIComponent(a==null||sv==""?(sd||""):a[0].slice(sv.length+2))
+}
+
+</script>
+
+<script type="text/javascript">
+$(function(){
+	$('body').append('<div id="dropzone" style="position:fixed;top:0;left:0;width:100%;height:100%;z-index:100;background:rgba(0,22,55,0.18);display:none;"></div>')
+	var last = null;
+	$(window).on('dragenter', function(e){
+		last = e.target;
+		$('#dropzone').fadeIn('fast')
+	})
+	$(window).on('dragleave', function(e){
+		if(e.target === last || e.target === document){
+			$('#dropzone').fadeOut('fast')
+		}
+	})
+	$('#dropzone').on('drop', function(event){
+		var ev=event.originalEvent
+		var dt=ev.dataTransfer
+		ev.preventDefault()
+		if(dt.items && dt.items[0].kind === 'file'){
+			handleFiles([dt.items[0].getAsFile()])
+		}else{
+			handleFiles(dt.files)
+		}
+		$('#dropzone').fadeOut('fast')
+	})
+	.on('dragover', function(event){
+		event.originalEvent.preventDefault()
+	})
+	$('body')[0].addEventListener('paste', function(event) {
+		var clipboardData = event.clipboardData || window.clipboardData
+		var items = clipboardData.items
+		for (var i = 0; i < items.length; i++) {
+			if (items[i].type.indexOf('image') !== -1) {
+				handleFiles([items[i].getAsFile()])
+				break;
+			}
+		}
+		event.preventDefault()
+	})
+})
+</script>
+
+<!--<script src="stat.js"></script-->
+
+<div class="footer-inner">
+<p align="center"> Copyright&nbsp;  &#169; 2004-01-11&nbsp;<a href="http://luhui.net" title="鲁虺文化网" target="_top">luhui.net</a>&nbsp;all rights reserved.</p>	<div id="back-to-top-btn" style="display:none;">
+<i class="fas fa-angle-double-up" style="font-size: 25px;"></i>
+</div>
+		
+		
+</body>
+</html>
